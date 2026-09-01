@@ -2,4 +2,5 @@
 .localstack/
 .terraform/
 terraform/.terraform/
-terraform/terraform.tfstate
+*.tfstate
+*.tfstate.*
