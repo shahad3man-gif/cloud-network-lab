@@ -1,152 +1,423 @@
-☁️ Cloud Network Lab
+# Cloud Network Lab
 
-«AWS-like Cloud Network Infrastructure built locally using Terraform, LocalStack, Docker, and Python/boto3.»
+A practical cloud networking laboratory that simulates a real-world company network using LocalStack, Terraform, Docker, AWS CLI, Python, and Linux.
 
-A practical cloud networking laboratory designed to simulate a small enterprise AWS network locally. The project focuses on Cloud Networking, Infrastructure as Code (IaC), network segmentation, routing, security, AWS API interaction, and infrastructure validation without requiring deployment to a real AWS account.
-
----
-
-📌 Project Overview
-
-The Cloud Network Lab is a simulated AWS networking environment running locally through LocalStack.
-
-The infrastructure is provisioned using Terraform, while Docker Compose manages the LocalStack environment. After deployment, the infrastructure is validated through AWS-compatible CLI commands and Python/boto3.
-
-The project was designed to understand how different cloud networking components work together in a real-world architecture.
-
-Main objectives
-
-- Design a structured cloud network.
-- Implement network segmentation using multiple subnets.
-- Separate public-facing and internal application resources.
-- Configure routing between network components.
-- Apply security rules using Security Groups.
-- Deploy EC2-based workloads.
-- Practice Infrastructure as Code using Terraform.
-- Interact with AWS-compatible APIs locally.
-- Validate infrastructure after deployment.
-- Troubleshoot service limitations and document technical decisions.
+The project is designed to demonstrate how cloud network infrastructure can be planned, deployed, secured, and validated using Infrastructure as Code (IaC).
 
 ---
 
-🏗️ Architecture
+## Project Overview
 
-The current architecture consists of a VPC divided into three logical network tiers:
+The **Cloud Network Lab** simulates a three-tier cloud network architecture similar to an AWS environment.
 
-                         🌐 Internet
-                              │
-                              ▼
-                    ┌─────────────────┐
-                    │ Internet Gateway│
-                    │      (IGW)      │
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │       VPC       │
-                    │   10.0.0.0/16   │
-                    │                 │
-        ┌───────────┼─────────┬───────┘
-        │           │         │
-        ▼           ▼         ▼
- ┌────────────┐ ┌──────────┐ ┌──────────────┐
- │   Public   │ │ Private  │ │   Database   │
- │   Subnet   │ │  Subnet  │ │    Subnet    │
- │10.0.1.0/24 │ │10.0.2.0/24│ │10.0.3.0/24 │
- │            │ │          │ │              │
- │ Web Server │ │App Server│ │Database Tier │
- │    EC2     │ │   EC2    │ │   Planned    │
- └────────────┘ └──────────┘ └──────────────┘
+The architecture separates workloads into:
 
-Network CIDR Plan
+- Public subnet
+- Private subnet
+- Database subnet
 
-Component| CIDR| Purpose
-VPC| "10.0.0.0/16"| Main virtual network
-Public Subnet| "10.0.1.0/24"| Public-facing resources
-Private Subnet| "10.0.2.0/24"| Internal application resources
-Database Subnet| "10.0.3.0/24"| Database layer
+The project focuses on:
+
+- VPC design
+- Subnet segmentation
+- Route tables
+- Internet Gateway
+- Security Groups
+- EC2 instances
+- Infrastructure as Code
+- Terraform
+- AWS CLI
+- Python and boto3
+- Linux
+- Docker
+- Local cloud simulation
+- Network security
+- Infrastructure validation
 
 ---
 
-🔐 Security Architecture
+## Architecture
 
-The network follows a basic tiered security model.
+The planned architecture follows a three-tier cloud network model.
 
-Web Security Group
+```text
+                         INTERNET
+                             |
+                             |
+                    +--------v--------+
+                    | Internet Gateway|
+                    +--------+--------+
+                             |
+                             |
+              +--------------v--------------+
+              |          VPC                |
+              |       10.0.0.0/16           |
+              |                             |
+              |   +---------------------+   |
+              |   |   Public Subnet     |   |
+              |   |   10.0.1.0/24       |   |
+              |   |                     |   |
+              |   |   Web EC2 Server    |   |
+              |   +----------+----------+   |
+              |              |              |
+              |              v              |
+              |   +---------------------+   |
+              |   |   Private Subnet    |   |
+              |   |   10.0.2.0/24       |   |
+              |   |                     |   |
+              |   |   App EC2 Server    |   |
+              |   +----------+----------+   |
+              |              |              |
+              |              v              |
+              |   +---------------------+   |
+              |   |   Database Subnet   |   |
+              |   |   10.0.3.0/24       |   |
+              |   |                     |   |
+              |   |   Database Layer    |   |
+              |   |   (Planned)         |   |
+              |   +---------------------+   |
+              |                             |
+              +-----------------------------+
+```
 
-Allows:
+The architecture follows the principle:
 
-Protocol| Port| Purpose
-HTTP| 80| Web traffic
-HTTPS| 443| Secure web traffic
-SSH| 22| Administrative access
+**Internet → Public Layer → Private Application Layer → Database Layer**
 
-Application Security Group
+---
 
-Allows application traffic on:
+# Network Design
 
-TCP 8080
+## VPC
 
-The intended source is the Web Security Group, rather than unrestricted Internet access.
+The main virtual network is:
 
+```text
+VPC CIDR: 10.0.0.0/16
+```
+
+The VPC provides the main network boundary for all cloud resources.
+
+### VPC Configuration
+
+| Component | Configuration |
+|---|---|
+| VPC | `10.0.0.0/16` |
+| DNS Support | Enabled |
+| DNS Hostnames | Enabled |
+| Region | `us-east-1` |
+| Environment | LocalStack |
+| Infrastructure Management | Terraform |
+
+---
+
+## Subnet Design
+
+The VPC is divided into multiple subnets.
+
+| Subnet | CIDR | Purpose | Exposure |
+|---|---|---|---|
+| Public Subnet | `10.0.1.0/24` | Web Server | Internet-facing |
+| Private Subnet | `10.0.2.0/24` | Application Server | Internal |
+| Database Subnet | `10.0.3.0/24` | Database Layer | Internal |
+
+### Network Segmentation
+
+```text
++---------------------------------------------------+
+|                  VPC 10.0.0.0/16                 |
+|                                                   |
+|  +-------------------+                            |
+|  | Public Subnet     |                            |
+|  | 10.0.1.0/24       |                            |
+|  |                   |                            |
+|  | Web Server        |                            |
+|  +---------+---------+                            |
+|            |                                      |
+|            v                                      |
+|  +-------------------+                            |
+|  | Private Subnet    |                            |
+|  | 10.0.2.0/24       |                            |
+|  |                   |                            |
+|  | App Server        |                            |
+|  +---------+---------+                            |
+|            |                                      |
+|            v                                      |
+|  +-------------------+                            |
+|  | Database Subnet   |                            |
+|  | 10.0.3.0/24       |                            |
+|  |                   |                            |
+|  | Database          |                            |
+|  | Planned           |                            |
+|  +-------------------+                            |
+|                                                   |
++---------------------------------------------------+
+```
+
+---
+
+# Routing Architecture
+
+Routing controls how traffic moves between the different network components.
+
+## Internet Gateway
+
+The VPC uses an Internet Gateway to provide internet connectivity for the public subnet.
+
+```text
+INTERNET
+    |
+    v
+Internet Gateway
+    |
+    v
+VPC
+    |
+    v
+Public Route Table
+    |
+    v
+Public Subnet
+    |
+    v
 Web Server
-     │
-     │ TCP/8080
-     ▼
-App Server
+```
 
-Database Security Group
+The public route table contains:
 
-The planned database layer uses:
+```text
+Destination: 0.0.0.0/0
+Target: Internet Gateway
+```
 
-TCP 3306
+This allows resources in the public subnet to communicate with the internet when the required network and security configuration is present.
 
-with traffic intended to originate from the Application Security Group.
+---
 
-App Server
-     │
-     │ TCP/3306
-     ▼
-Database
+## Private Network Routing
 
-This creates the following logical communication flow:
+The application subnet does not have a direct route to an Internet Gateway.
 
+```text
++----------------------+
+|   Public Subnet      |
+|   10.0.1.0/24        |
+|                      |
+|   Web Server         |
++----------+-----------+
+           |
+           | Internal Traffic
+           v
++----------------------+
+|   Private Subnet     |
+|   10.0.2.0/24        |
+|                      |
+|   App Server         |
++----------+-----------+
+           |
+           | Internal Traffic
+           v
++----------------------+
+|   Database Subnet    |
+|   10.0.3.0/24        |
+|                      |
+|   Database           |
+|   Planned            |
++----------------------+
+```
+
+The private subnet is intended to isolate application resources from direct internet exposure.
+
+---
+
+# Security Architecture
+
+The security model follows a layered approach.
+
+```text
+                         INTERNET
+                             |
+                             v
+                     +---------------+
+                     |   Web Layer   |
+                     |   Port 80     |
+                     |   Port 443    |
+                     +-------+-------+
+                             |
+                             | Allowed
+                             v
+                     +---------------+
+                     | Application   |
+                     |    Layer      |
+                     |   Port 8080   |
+                     +-------+-------+
+                             |
+                             | Allowed
+                             v
+                     +---------------+
+                     |  Database     |
+                     |    Layer      |
+                     |   Port 3306   |
+                     +---------------+
+```
+
+The objective is to avoid exposing internal resources directly to the internet.
+
+---
+
+# Security Groups
+
+Security Groups are used to control inbound network traffic.
+
+## Web Security Group
+
+The Web Security Group allows web traffic and administrative SSH access.
+
+| Protocol | Port | Source | Purpose |
+|---|---:|---|---|
+| TCP | 80 | `0.0.0.0/0` | HTTP |
+| TCP | 443 | `0.0.0.0/0` | HTTPS |
+| TCP | 22 | `0.0.0.0/0` | SSH |
+
+> For a production environment, SSH should be restricted to trusted IP addresses instead of allowing `0.0.0.0/0`.
+
+---
+
+## Application Security Group
+
+The Application Security Group only accepts application traffic from the Web Security Group.
+
+| Protocol | Port | Source | Purpose |
+|---|---:|---|---|
+| TCP | 8080 | Web Security Group | Application traffic |
+
+This prevents arbitrary internet traffic from directly reaching the application server.
+
+---
+
+## Database Security Group
+
+The Database Security Group only accepts database traffic from the Application Security Group.
+
+| Protocol | Port | Source | Purpose |
+|---|---:|---|---|
+| TCP | 3306 | App Security Group | MySQL |
+
+### Security Flow
+
+```text
 Internet
-   │
-   ▼
-Web Tier
-   │
-   ▼
-Application Tier
-   │
-   ▼
-Database Tier
-
-This approach demonstrates the principle of network segmentation and reduces unnecessary direct exposure of internal resources.
-
----
-
-🧩 Technologies & Tools
-
-Technology| Role
-Terraform| Infrastructure as Code
-LocalStack| Local AWS service simulation
-Docker| Containerized LocalStack environment
-Docker Compose| LocalStack service configuration
-Python 3| Infrastructure verification
-boto3| AWS API interaction
-AWS CLI / awslocal| Command-line resource inspection
-Linux Terminal| Environment management and execution
-Git / GitHub| Version control and project documentation
+   |
+   | HTTP / HTTPS
+   v
+Web Security Group
+   |
+   | TCP 8080
+   v
+Application Security Group
+   |
+   | TCP 3306
+   v
+Database Security Group
+```
 
 ---
 
-📁 Project Structure
+# EC2 Instances
 
+The project includes two EC2 instances in the current implementation.
+
+## Web Server
+
+The Web Server is deployed in the public subnet.
+
+```text
+Web Server
+Subnet: 10.0.1.0/24
+Layer: Public
+Purpose: Web Traffic
+```
+
+The Web Server is designed to receive external requests.
+
+---
+
+## Application Server
+
+The Application Server is deployed in the private subnet.
+
+```text
+Application Server
+Subnet: 10.0.2.0/24
+Layer: Private
+Purpose: Application Processing
+Port: 8080
+```
+
+The Application Server is intended to receive traffic only from the Web Layer.
+
+---
+
+# Application Traffic Flow
+
+```text
+                         INTERNET
+                             |
+                             v
+                    +----------------+
+                    |   Web Server   |
+                    | Public Subnet  |
+                    |  10.0.1.0/24   |
+                    +--------+-------+
+                             |
+                             | TCP 8080
+                             v
+                    +----------------+
+                    |  App Server    |
+                    | Private Subnet |
+                    |  10.0.2.0/24   |
+                    +--------+-------+
+                             |
+                             | TCP 3306
+                             v
+                    +----------------+
+                    |   Database     |
+                    | Database Layer |
+                    |  10.0.3.0/24   |
+                    +----------------+
+```
+
+The database layer is currently planned and is not deployed in the current LocalStack configuration.
+
+---
+
+# Technologies and Tools
+
+| Technology | Purpose |
+|---|---|
+| Docker | Containerized environment |
+| Docker Compose | LocalStack orchestration |
+| LocalStack | AWS cloud service simulation |
+| Terraform | Infrastructure as Code |
+| AWS CLI | AWS resource management |
+| awslocal | LocalStack AWS CLI wrapper |
+| Python | Automation and validation |
+| boto3 | AWS API interaction |
+| Linux | Development environment |
+| Git | Version control |
+| GitHub | Project documentation and portfolio |
+
+---
+
+# Project Structure
+
+```text
 cloud-network-lab/
 │
 ├── docker-compose.yml
 ├── .env
 ├── .gitignore
+├── README.md
 │
 ├── terraform/
 │   ├── provider.tf
@@ -160,242 +431,303 @@ cloud-network-lab/
 │   └── outputs.tf
 │
 └── documentation/
-    └── architecture.md
+```
 
 ---
 
-📄 Terraform Files
+# Terraform Configuration
 
-"provider.tf"
+Terraform is used to define and manage the infrastructure.
 
-Configures the Terraform AWS provider to communicate with LocalStack instead of the real AWS environment.
+## provider.tf
 
-Architecture:
+The AWS provider is configured to communicate with LocalStack instead of the real AWS environment.
 
-Terraform
-    │
-    ▼
-AWS Provider
-    │
-    ▼
-LocalStack
-    │
-    ▼
-AWS-compatible APIs
+```hcl
+provider "aws" {
+  region                      = "us-east-1"
+  access_key                  = "test"
+  secret_key                  = "test"
+
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
+  skip_requesting_account_id  = true
+
+  endpoints {
+    ec2 = "http://localhost:4566"
+  }
+}
+```
 
 ---
 
-"vpc.tf"
+## vpc.tf
 
-Defines the main VPC:
+Defines the main VPC.
 
+```text
+VPC
 CIDR: 10.0.0.0/16
+```
 
-and enables DNS support and DNS hostnames.
-
----
-
-"subnets.tf"
-
-Defines the network segmentation:
-
-Public    → 10.0.1.0/24
-Private   → 10.0.2.0/24
-Database  → 10.0.3.0/24
+The VPC also enables DNS support and DNS hostnames.
 
 ---
 
-"routing.tf"
+## subnets.tf
+
+Defines the three logical network segments:
+
+```text
+Public:
+10.0.1.0/24
+
+Private:
+10.0.2.0/24
+
+Database:
+10.0.3.0/24
+```
+
+---
+
+## routing.tf
 
 Defines:
 
 - Internet Gateway
-- Route Tables
-- Route Table Associations
-- Internet routing
+- Public Route Table
+- Private Route Table
+- Route associations
 
-The public route table uses:
+The public route table contains:
 
-Destination: 0.0.0.0/0
-Target: Internet Gateway
+```text
+0.0.0.0/0 → Internet Gateway
+```
 
 ---
 
-"security.tf"
+## security.tf
 
 Defines the Security Groups for:
 
-- Web tier
-- Application tier
-- Database tier
-
-The rules are designed to restrict communication between tiers.
+- Web Server
+- Application Server
+- Database Layer
 
 ---
 
-"instances.tf"
+## instances.tf
 
-Defines the EC2-based workloads:
+Defines the EC2 instances.
 
-Web Server  → Public Subnet
-App Server  → Private Subnet
+Current instances:
 
----
-
-"alb.tf"
-
-Reserved for the planned Application Load Balancer implementation.
-
-The ALB configuration is currently disabled because the required ELBv2 functionality is not available under the LocalStack license currently being used.
+```text
+Web Server
+App Server
+```
 
 ---
 
-"database.tf"
+## alb.tf
 
-Reserved for the planned RDS database layer.
+The Application Load Balancer architecture is planned but currently disabled.
 
-The RDS configuration is currently disabled because RDS functionality is not available under the current LocalStack license.
+The reason is that the required ELBv2 functionality is not available under the current LocalStack license configuration.
+
+Planned architecture:
+
+```text
+Internet
+    |
+    v
+Application Load Balancer
+    |
+    v
+Web / Application Targets
+```
 
 ---
 
-"outputs.tf"
+## database.tf
 
-Prepared to expose important infrastructure information such as:
+The database layer is planned but currently disabled.
+
+The intended architecture is:
+
+```text
+Application Server
+       |
+       | TCP 3306
+       v
+Database
+```
+
+The current LocalStack environment does not provide the required RDS functionality under the current license configuration.
+
+---
+
+## outputs.tf
+
+Terraform outputs are prepared to expose useful infrastructure information such as:
 
 - VPC ID
 - Subnet IDs
+- Security Group IDs
 - Instance IDs
-- IP addresses
+- Network information
 
 ---
 
-🚀 Getting Started
+# LocalStack Environment
 
-1. Prerequisites
+LocalStack provides a local AWS-like environment for testing cloud infrastructure without deploying the resources to a real AWS account.
 
-Install or have access to:
+The environment is started using Docker Compose.
 
-- Docker
-- Docker Compose
-- Terraform
-- Python 3
-- boto3
-- Git
-- AWS CLI / awslocal
+## Start LocalStack
 
----
+From the project root:
 
-2. Clone the Repository
+```bash
+cd /workspaces/cloud-network-lab
+```
 
-git clone <YOUR_REPOSITORY_URL>
-cd cloud-network-lab
+Start the containers:
 
----
-
-3. Start LocalStack
-
+```bash
 docker compose up -d
+```
 
-This starts the LocalStack environment in the background.
-
-Check the running containers:
-
-docker ps
+The `-d` option starts the container in detached mode.
 
 ---
 
-4. Check LocalStack Health
+# LocalStack Health Check
 
-Run:
+After starting LocalStack, verify that the service is running:
 
+```bash
 curl -sS http://localhost:4566/_localstack/health
+```
 
-The response should indicate that the required services are available/running.
+The returned status depends on the LocalStack version and available license features.
 
 ---
 
-5. Initialize Terraform
+# Terraform Deployment
 
-Move to the Terraform directory:
+Move into the Terraform directory:
 
-cd terraform
+```bash
+cd /workspaces/cloud-network-lab/terraform
+```
 
-Initialize the Terraform working directory:
+Initialize Terraform:
 
+```bash
 terraform init
+```
 
-This downloads and initializes the required Terraform provider configuration.
+Format the configuration:
 
----
-
-6. Format Terraform Configuration
-
+```bash
 terraform fmt
+```
 
-This formats the Terraform files according to Terraform's standard formatting rules.
+Validate the configuration:
 
----
-
-7. Validate the Configuration
-
+```bash
 terraform validate
+```
 
 Expected result:
 
+```text
 Success! The configuration is valid.
+```
 
-This confirms that the Terraform configuration can be parsed and validated successfully.
+Create an execution plan:
 
----
-
-8. Review the Infrastructure Plan
-
+```bash
 terraform plan
+```
 
-Terraform compares the desired infrastructure configuration with the current state and displays the resources that would be created, modified, or destroyed.
+Deploy the infrastructure:
 
----
-
-9. Deploy the Infrastructure
-
+```bash
 terraform apply -auto-approve
-
-Terraform then provisions the configured infrastructure through LocalStack.
+```
 
 ---
 
-🔎 Infrastructure Verification
+# Infrastructure Verification
 
-After deployment, the resources can be inspected through AWS-compatible APIs.
+After Terraform deployment, verify the created resources using `awslocal`.
 
-Check VPCs
+## Check VPCs
 
+```bash
 awslocal ec2 describe-vpcs
+```
 
-Check Subnets
+## Check Subnets
 
+```bash
 awslocal ec2 describe-subnets
+```
 
-Check EC2 Instances
+## Check EC2 Instances
 
+```bash
 awslocal ec2 describe-instances
+```
 
 ---
 
-🐍 Verification Using Python & boto3
+# Verification Flow
 
-The infrastructure can also be verified programmatically using Python.
+```text
+Terraform
+    |
+    v
+LocalStack
+    |
+    +------------------+
+    |                  |
+    v                  v
+   VPC              Subnets
+    |                  |
+    +---------+--------+
+              |
+              v
+         EC2 Instances
+              |
+              v
+       Security Groups
+```
 
+---
+
+# Python and boto3 Verification
+
+Python and boto3 are used to communicate with the AWS-compatible LocalStack API.
+
+Run:
+
+```bash
 python3 - <<'PY'
 import json
 import boto3
 
 client = boto3.client(
-    'ec2',
-    endpoint_url='http://localhost:4566',
-    aws_access_key_id='test',
-    aws_secret_access_key='test',
-    region_name='us-east-1'
+    "ec2",
+    endpoint_url="http://localhost:4566",
+    aws_access_key_id="test",
+    aws_secret_access_key="test",
+    region_name="us-east-1"
 )
 
 print("=== VPCs ===")
@@ -419,250 +751,428 @@ print(json.dumps(
     default=str
 ))
 PY
+```
 
-This provides an additional verification layer:
-
-Terraform
-    │
-    ▼
-LocalStack
-    │
-    ▼
-AWS-compatible API
-    │
-    ▼
-boto3
-    │
-    ▼
-Resource Verification
+This validates that Python can communicate with the same infrastructure through the AWS API.
 
 ---
 
-🧪 Validation Workflow
+# Complete Deployment Workflow
 
-The project follows this general workflow:
-
-┌──────────────────────┐
-│   Project Files      │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│ Docker Compose       │
-│ Start LocalStack     │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│ LocalStack Health    │
-│ Check                │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│ Terraform Init       │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│ Terraform Validate   │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│ Terraform Plan       │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│ Terraform Apply      │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│ AWS API Verification │
-│ boto3 / awslocal     │
-└──────────────────────┘
+```text
++----------------------+
+|       Developer      |
++----------+-----------+
+           |
+           v
++----------------------+
+|      Git / GitHub    |
++----------+-----------+
+           |
+           v
++----------------------+
+|       Terraform      |
++----------+-----------+
+           |
+           v
++----------------------+
+|      LocalStack      |
++----------+-----------+
+           |
+           v
++----------------------+
+|         VPC          |
++----------+-----------+
+           |
+           +-------------------+
+           |                   |
+           v                   v
++-------------------+   +-------------------+
+|  Public Subnet    |   |  Private Subnet   |
+|   10.0.1.0/24     |   |   10.0.2.0/24     |
+|                   |   |                   |
+|   Web Server      |   |   App Server      |
++-------------------+   +---------+---------+
+                                  |
+                                  v
+                        +-------------------+
+                        | Database Subnet   |
+                        |   10.0.3.0/24     |
+                        |                   |
+                        | Database Planned  |
+                        +-------------------+
+```
 
 ---
 
-⚠️ Current Limitations
+# Current Implementation
 
-This project uses LocalStack as an AWS simulation environment.
+| Component | Status |
+|---|---|
+| VPC | Implemented |
+| Public Subnet | Implemented |
+| Private Subnet | Implemented |
+| Database Subnet | Defined |
+| Internet Gateway | Implemented |
+| Public Route Table | Implemented |
+| Private Route Table | Implemented |
+| Web Security Group | Implemented |
+| App Security Group | Implemented |
+| Database Security Group | Defined |
+| Web EC2 | Implemented |
+| App EC2 | Implemented |
+| Application Load Balancer | Planned |
+| RDS Database | Planned |
+| NAT Gateway | Planned |
+| Monitoring | Planned |
 
-Some AWS services depend on the LocalStack edition and license configuration.
+---
 
+# Current Limitations
+
+## Application Load Balancer
+
+The project architecture includes an Application Load Balancer as a future component.
+
+However, ELBv2 functionality is currently disabled because it is not included in the current LocalStack license configuration.
+
+Planned architecture:
+
+```text
+Internet
+    |
+    v
 Application Load Balancer
-
-The ALB implementation was planned but temporarily disabled because ELBv2 functionality is not included in the currently available LocalStack license.
-
-Amazon RDS
-
-The RDS implementation was also planned but temporarily disabled because RDS functionality is not included in the currently available LocalStack license.
-
-These limitations do not change the networking concepts demonstrated by the project. The corresponding components remain part of the planned architecture and can be implemented when the required services become available or when deploying to real AWS infrastructure.
+    |
+    +----------------+
+    |                |
+    v                v
+Web/App Server 1   Web/App Server 2
+```
 
 ---
 
-🔒 Security & Repository Hygiene
+## Database
 
-The repository uses ".gitignore" to prevent local and sensitive files from being committed.
+The database architecture is also planned.
 
-Examples include:
+The intended production-style architecture is:
 
+```text
+Web Layer
+    |
+    v
+Application Layer
+    |
+    v
+Database Layer
+```
+
+The RDS implementation is currently disabled because the required RDS functionality is not available under the current LocalStack license configuration.
+
+---
+
+# Security and Repository Hygiene
+
+Sensitive and generated files should not be committed to GitHub.
+
+The `.gitignore` file contains entries such as:
+
+```text
 .env
 .localstack/
 .terraform/
 *.tfstate
 *.tfstate.*
+```
 
-This is particularly important for preventing accidental exposure of:
+The `.env` file may contain environment-specific configuration and should remain local.
 
-- Environment variables
-- Authentication tokens
-- Terraform state
-- Local development files
+Terraform state files should also be excluded from the public repository unless there is a specific reason to commit them.
 
 ---
 
-📚 What I Learned
+# Validation Strategy
 
-Through this project, I practiced and strengthened my understanding of:
+The infrastructure is validated at multiple levels.
 
-Cloud Networking
+```text
+                 Infrastructure
+                       |
+                       v
+                Terraform Validate
+                       |
+                       v
+                  Terraform Plan
+                       |
+                       v
+                Terraform Apply
+                       |
+                       v
+              LocalStack Resources
+                       |
+          +------------+------------+
+          |            |            |
+          v            v            v
+         VPC        Subnets       EC2
+          |            |            |
+          +------------+------------+
+                       |
+                       v
+                  AWS CLI
+                       |
+                       v
+                    boto3
+                       |
+                       v
+              Infrastructure Check
+```
 
-- VPC design
+---
+
+# What I Learned
+
+This project provides practical experience in:
+
+### Cloud Networking
+
+- VPC architecture
 - CIDR addressing
-- Subnetting
-- Public vs. private networks
+- Subnet segmentation
+- Public and private network design
 - Internet Gateway
-- Route Tables
-- Network segmentation
-
-Cloud Security
-
+- Route tables
 - Security Groups
-- Tier-based access control
-- Restricting internal services
-- Reducing unnecessary network exposure
 
-Infrastructure as Code
+### Infrastructure as Code
 
-- Terraform configuration
-- Providers
-- Resources
-- Dependencies
-- "terraform init"
-- "terraform fmt"
-- "terraform validate"
-- "terraform plan"
-- "terraform apply"
+- Terraform
+- Provider configuration
+- Resource dependencies
+- Terraform state
+- Terraform validation
+- Terraform planning
+- Infrastructure deployment
 
-Cloud Tooling
+### Cloud Simulation
 
+- LocalStack
+- AWS-compatible APIs
 - Docker
 - Docker Compose
-- LocalStack
-- AWS CLI
-- AWS APIs
+- Local cloud environments
+
+### Automation
+
 - Python
 - boto3
+- AWS CLI
+- awslocal
+- Infrastructure verification
 
-Troubleshooting
+### Linux
 
-The project also provided practical experience in identifying infrastructure limitations, understanding service availability, modifying the implementation accordingly, and documenting technical decisions.
+- Terminal-based development
+- Docker management
+- Environment configuration
+- CLI troubleshooting
 
----
+### Security
 
-🔮 Future Improvements
-
-The next iterations of the project will focus on moving from a basic cloud networking lab toward a more production-oriented architecture.
-
-Planned improvements include:
-
-- [ ] Application Load Balancer
-- [ ] RDS database layer
-- [ ] NAT Gateway
-- [ ] Network ACLs
-- [ ] Multi-AZ architecture
-- [ ] VPC Flow Logs
-- [ ] CloudWatch monitoring
-- [ ] IAM roles and policies
-- [ ] Bastion Host / secure administrative access
-- [ ] Terraform modules
-- [ ] Terraform remote state
-- [ ] CI/CD pipeline for Terraform
-- [ ] High Availability architecture
-- [ ] Deployment to real AWS
-- [ ] Network monitoring and logging
+- Network segmentation
+- Layered security
+- Security Groups
+- Controlled service-to-service communication
+- Private application architecture
 
 ---
 
-🎯 Project Goals
+# Future Improvements
 
-The long-term goal is to evolve this laboratory into a more complete Cloud Network Engineering portfolio project demonstrating:
+The project roadmap includes:
 
-Cloud Networking
-       +
-Infrastructure as Code
-       +
-Cloud Security
-       +
-Automation
-       +
-Monitoring
-       +
-High Availability
-       +
-AWS
+- [ ] Enable Application Load Balancer
+- [ ] Add database implementation
+- [ ] Add NAT Gateway
+- [ ] Add multiple application instances
+- [ ] Add load balancing
+- [ ] Add CloudWatch-style monitoring
+- [ ] Add centralized logging
+- [ ] Add automated infrastructure testing
+- [ ] Add CI/CD pipeline
+- [ ] Add GitHub Actions
+- [ ] Add network traffic testing
+- [ ] Add HTTPS/TLS
+- [ ] Improve SSH security
+- [ ] Add architecture diagrams
+- [ ] Add automated documentation
+- [ ] Deploy an equivalent architecture on real AWS
 
 ---
 
-👩‍💻 Author
+# Project Roadmap
 
-Shahad Saleh Juma Al Sinani
+```text
+Phase 1
+Network Design
+     |
+     v
+Phase 2
+VPC + Subnets
+     |
+     v
+Phase 3
+Routing
+     |
+     v
+Phase 4
+Security Groups
+     |
+     v
+Phase 5
+EC2 Infrastructure
+     |
+     v
+Phase 6
+Terraform Automation
+     |
+     v
+Phase 7
+Infrastructure Validation
+     |
+     v
+Phase 8
+Load Balancer
+     |
+     v
+Phase 9
+Database
+     |
+     v
+Phase 10
+Monitoring + CI/CD
+     |
+     v
+Phase 11
+Real AWS Deployment
+```
+
+---
+
+# Skills Demonstrated
+
+```text
+                 CLOUD NETWORKING
+                        |
+        +---------------+---------------+
+        |               |               |
+        v               v               v
+       VPC           SUBNETS         ROUTING
+        |               |               |
+        +---------------+---------------+
+                        |
+                        v
+                   SECURITY
+                        |
+                        v
+                    TERRAFORM
+                        |
+                        v
+                   LOCALSTACK
+                        |
+             +----------+----------+
+             |                     |
+             v                     v
+           DOCKER               PYTHON
+             |                     |
+             +----------+----------+
+                        |
+                        v
+                    GITHUB
+```
+
+---
+
+# Project Status
+
+**Current Status: In Progress**
+
+The core cloud networking infrastructure has been implemented and tested in a local AWS-compatible environment.
+
+### Implemented
+
+- VPC
+- Subnet architecture
+- Internet Gateway
+- Route tables
+- Security Groups
+- EC2 instances
+- Terraform configuration
+- LocalStack environment
+- Docker Compose environment
+- AWS CLI validation
+- Python/boto3 validation
+
+### Planned
+
+- Application Load Balancer
+- RDS database
+- NAT Gateway
+- Monitoring
+- Logging
+- CI/CD
+- Real AWS deployment
+
+---
+
+# Author
+
+**Shahad Saleh Juma Al Sinani**
 
 Computer Science — Systems & Networks
 
-Interested in:
+Focus:
 
 - Cloud Networking
-- Cloud Infrastructure
-- Network Security
+- Network Infrastructure
 - Infrastructure as Code
-- AWS
-- Network Automation
+- Cloud Computing
+- Network Security
+- Linux
+- Automation
 
 ---
 
-⭐ Project Status
+# Key Takeaway
 
-Status: 🟢 Active Development
+The project demonstrates the complete infrastructure lifecycle:
 
-The current version successfully demonstrates the core network architecture using LocalStack and Terraform.
+```text
+DESIGN
+  |
+  v
+NETWORK ARCHITECTURE
+  |
+  v
+INFRASTRUCTURE AS CODE
+  |
+  v
+LOCAL CLOUD SIMULATION
+  |
+  v
+DEPLOYMENT
+  |
+  v
+SECURITY
+  |
+  v
+VALIDATION
+  |
+  v
+AUTOMATION
+  |
+  v
+FUTURE AWS DEPLOYMENT
+```
 
-The project will continue to evolve toward a more production-oriented AWS cloud networking environment.
-
----
-
-📌 Key Takeaway
-
-This project demonstrates the complete infrastructure lifecycle:
-
-Design
-  ↓
-Infrastructure as Code
-  ↓
-Local Deployment
-  ↓
-Network Configuration
-  ↓
-Security Configuration
-  ↓
-API Verification
-  ↓
-Troubleshooting
-  ↓
-Documentation
-
-«The purpose of this project is not only to build a cloud network, but to understand how cloud infrastructure is designed, provisioned, secured, validated, and evolved.»
+> This project demonstrates practical cloud networking and Infrastructure as Code skills by designing, deploying, securing, and validating an AWS-like network environment locally using Terraform and LocalStack.
